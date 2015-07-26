@@ -1,30 +1,29 @@
 from __future__ import unicode_literals
 
+import arrow
 import json
 import xbmc
-import xbmcgui
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from devhelper import pykodi
 from devhelper.pykodi import log
+from devhelper.pykodi import wait
 from devhelper import quickjson
 
 seconds_to_ignore = 120
 
 class KodiMonitor(xbmc.Monitor):
     watchlist = []
-
     def __init__(self):
         xbmc.Monitor.__init__(self)
 
-        log('Started')
-        while not self.waitForAbort(1):
-            pass # Keep alive to receive onNotification
-
-        # Received the abort command
-        log('Stopped')
-
     def onNotification(self, sender, method, data):
         data = json.loads(data)
+        if method not in ['Player.OnPlay', 'VideoLibrary.OnUpdate']: # watch for OnUpdate because the update may happen later than OnStop
+            return
+        if 'id' not in data['item'] or data['item']['type'] not in ['movie', 'episode']:
+            return # only care about library videos that are likely to be longer than a few minutes anyway
+
         if method == 'Player.OnPlay':
             self._add_item_to_watchlist(data)
         elif method == 'VideoLibrary.OnUpdate':
@@ -35,18 +34,15 @@ class KodiMonitor(xbmc.Monitor):
             json_result = quickjson.get_episode_details(data['item']['id'])
         elif data['item']['type'] == 'movie':
             json_result = quickjson.get_movie_details(data['item']['id'])
-        else:
-            log("Don't know what to do with item type %s, so I can't fix its lastplayed timestamp later" % data['item']['type'], xbmc.LOGNOTICE)
-            return
-        new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': _current_time(), 'DB last played': json_result['lastplayed']}
+
+        new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': pykodi.datetime_now(), 'DB last played': json_result['lastplayed']}
         self.watchlist.append(new_item)
 
     def _check_item_against_watchlist(self, data):
         matching = [item for item in self.watchlist if item['type'] == data['item']['type'] and item['id'] == data['item']['id']]
         if matching:
             matching = matching[0]
-            self.watchlist = [item for item in self.watchlist
-                if not (item['type'] == data['item']['type'] and item['id'] == data['item']['id'])]
+            self.watchlist = [item for item in self.watchlist if not (item['type'] == data['item']['type'] and item['id'] == data['item']['id'])]
             if matching['type'] == 'episode':
                 json_result = quickjson.get_episode_details(data['item']['id'])
                 if _should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
@@ -55,19 +51,18 @@ class KodiMonitor(xbmc.Monitor):
                 json_result = quickjson.get_movie_details(data['item']['id'])
                 if _should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
-            else:
-                log("Don't know what to do with item type %s, so I can't fix its lastplayed timestamp" % matching['type'], xbmc.LOGNOTICE)
-
-def _current_time():
-    try:
-        return datetime.now()
-    except ImportError:
-        xbmc.sleep(50)
-        return _current_time()
 
 def _should_revert_lastplayed(start_time, lastplayed_string):
-    lastplayed_time = datetime.strptime(lastplayed_string, '%Y-%m-%d %H:%M:%S')
+    lastplayed_time = pykodi.datetime_strptime(lastplayed_string)
     return lastplayed_time < start_time + timedelta(seconds=seconds_to_ignore)
 
 if __name__ == '__main__':
-    KodiMonitor()
+    monitor = KodiMonitor()
+    log('Started')
+    wait()
+    log('Python version: %s' % sys.version)
+
+    monitor.waitForAbort()
+    # Received the abort command
+
+    log('Stopped')
