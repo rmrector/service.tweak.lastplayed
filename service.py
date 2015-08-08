@@ -1,13 +1,9 @@
-from __future__ import unicode_literals
-
-import arrow
 import json
 import xbmc
 from datetime import timedelta
 
 from devhelper import pykodi
 from devhelper.pykodi import log
-from devhelper.pykodi import wait
 from devhelper import quickjson
 
 seconds_to_ignore = 120
@@ -59,8 +55,6 @@ def _should_revert_lastplayed(start_time, lastplayed_string):
 if __name__ == '__main__':
     monitor = KodiMonitor()
     log('Started')
-    wait()
-    log('Python version: %s' % sys.version)
 
     monitor.waitForAbort()
     # Received the abort command
