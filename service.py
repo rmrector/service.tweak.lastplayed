@@ -17,7 +17,7 @@ class KodiMonitor(xbmc.Monitor):
         data = json.loads(data)
         if method not in ['Player.OnPlay', 'VideoLibrary.OnUpdate']: # watch for OnUpdate because the update may happen later than OnStop
             return
-        if 'id' not in data['item'] or data['item']['type'] not in ['movie', 'episode']:
+        if 'item' not in data or 'id' not in data['item'] or data['item']['type'] not in ['movie', 'episode']:
             return # only care about library videos that are likely to be longer than a few minutes anyway
 
         if method == 'Player.OnPlay':
