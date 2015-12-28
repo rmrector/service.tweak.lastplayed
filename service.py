@@ -14,10 +14,10 @@ from pykodi import log
 
 SETTING_UPDATE_AFTER = 'update_after'
 
-class KodiMonitor(xbmc.Monitor):
-    watchlist = []
+class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):
-        xbmc.Monitor.__init__(self)
+        super(TweakLastPlayedService, self).__init__()
+        self.watchlist = []
         self.delay = False
         self.paused = False
         self.pausedtime = 0
@@ -31,11 +31,11 @@ class KodiMonitor(xbmc.Monitor):
         log('Service stopped')
 
     def onNotification(self, sender, method, data):
-        data = json.loads(data)
         if method not in ('Player.OnPlay', 'Player.OnStop', 'Player.OnPause', 'VideoLibrary.OnUpdate'):
             return
-        if 'item' not in data or 'id' not in data['item'] or data['item']['type'] not in ['movie', 'episode']:
-            return # only care about library videos that are likely to be longer than a few minutes anyway
+        data = json.loads(data)
+        if 'item' not in data or 'id' not in data['item'] or data['item']['type'] not in ('movie', 'episode'):
+            return # Keep it simple by tracking only library videos that are likely to be longer than a few minutes anyway
 
         if method == 'Player.OnPlay':
             if not self.paused:
@@ -66,18 +66,22 @@ class KodiMonitor(xbmc.Monitor):
     def _check_item_against_watchlist(self, data):
         while self.delay and datetime.now() < self.delay:
             xbmc.sleep(100)
-        matching = [item for item in self.watchlist if item['type'] == data['item']['type'] and item['id'] == data['item']['id']]
+        matching = [item for item in self.watchlist if matches(item, data['item'])]
         if matching:
             matching = matching[0]
-            self.watchlist = [item for item in self.watchlist if not (item['type'] == data['item']['type'] and item['id'] == data['item']['id'])]
-            if matching['type'] == 'episode':
+            self.watchlist = [item for item in self.watchlist if not matches(item, data['item'])]
+            if 'end' in data and data['end']:
+                pass # The video was played through to the end, no need to revert lastplayed
+            elif matching['type'] == 'episode':
                 json_result = quickjson.get_episode_details(data['item']['id'])
                 if self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']) and json_result['lastplayed'] != matching['DB last played']:
                     quickjson.set_episode_details(matching['id'], lastplayed=matching['DB last played'])
+                    log("Reverted episode '%s' last played timestamp." % json_result['title'])
             elif matching['type'] == 'movie':
                 json_result = quickjson.get_movie_details(data['item']['id'])
                 if self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']) and json_result['lastplayed'] != matching['DB last played']:
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
+                    log("Reverted movie '%s' last played timestamp." % json_result['title'])
         self.delay = False
 
     def should_revert_lastplayed(self, start_time, lastplayed_string):
@@ -90,7 +94,13 @@ class KodiMonitor(xbmc.Monitor):
         compareseconds = update_after + self.pausedtime
         return lastplayed_time < start_time + timedelta(seconds=compareseconds)
 
+def matches(item, dataitem):
+    return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
+
 if __name__ == '__main__':
     if pykodi.first_datetime():
-        monitor = KodiMonitor()
-        monitor.run()
+        service = TweakLastPlayedService()
+        try:
+            service.run()
+        finally:
+            del service
