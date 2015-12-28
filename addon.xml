@@ -2,7 +2,7 @@
 	<addon id="service.tweak.lastplayed" name="Tweak Last played rules" version="0.0.1" provider-name="rmrector">
 	<requires>
 		<import addon="xbmc.python" version="2.20.0"/>
-		<import addon="script.module.devhelper" version="0.0.1" />
+		<import addon="script.module.simplejson" version="3.3.0"/>
 	</requires>
 	<extension point="xbmc.service" start="login" library="service.py" />
 	<extension point="xbmc.addon.metadata">

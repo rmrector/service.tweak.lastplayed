@@ -1,12 +1,17 @@
 import json
 import xbmc
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from devhelper import pykodi
-from devhelper.pykodi import log
-from devhelper import quickjson
+import os, sys, xbmcaddon
+addon = xbmcaddon.Addon()
+resourcelibs = xbmc.translatePath(addon.getAddonInfo('path')).decode('utf-8')
+resourcelibs = os.path.join(resourcelibs, u'resources', u'lib')
+sys.path.append(resourcelibs)
 
 seconds_to_ignore = 120
+import quickjson
+import pykodi
+from pykodi import log
 
 class KodiMonitor(xbmc.Monitor):
     watchlist = []
@@ -31,7 +36,7 @@ class KodiMonitor(xbmc.Monitor):
         elif data['item']['type'] == 'movie':
             json_result = quickjson.get_movie_details(data['item']['id'])
 
-        new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': pykodi.datetime_now(), 'DB last played': json_result['lastplayed']}
+        new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': datetime.now(), 'DB last played': json_result['lastplayed']}
         self.watchlist.append(new_item)
 
     def _check_item_against_watchlist(self, data):
@@ -49,14 +54,14 @@ class KodiMonitor(xbmc.Monitor):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
 
 def _should_revert_lastplayed(start_time, lastplayed_string):
-    lastplayed_time = pykodi.datetime_strptime(lastplayed_string)
+    lastplayed_time = datetime.strptime(lastplayed_string)
     return lastplayed_time < start_time + timedelta(seconds=seconds_to_ignore)
 
 if __name__ == '__main__':
-    monitor = KodiMonitor()
-    log('Started')
+    if pykodi.first_datetime():
+        monitor = KodiMonitor()
+        log('Started')
+        monitor.waitForAbort()
 
-    monitor.waitForAbort()
-    # Received the abort command
+        log('Stopped')
 
-    log('Stopped')
