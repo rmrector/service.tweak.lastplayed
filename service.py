@@ -18,18 +18,25 @@ class KodiMonitor(xbmc.Monitor):
     watchlist = []
     def __init__(self):
         xbmc.Monitor.__init__(self)
+        self.delay = False
 
     def onNotification(self, sender, method, data):
         data = json.loads(data)
-        if method not in ['Player.OnPlay', 'VideoLibrary.OnUpdate']: # watch for OnUpdate because the update may happen later than OnStop
+        if method not in ('Player.OnPlay', 'Player.OnStop', 'VideoLibrary.OnUpdate'):
             return
         if 'item' not in data or 'id' not in data['item'] or data['item']['type'] not in ['movie', 'episode']:
             return # only care about library videos that are likely to be longer than a few minutes anyway
 
         if method == 'Player.OnPlay':
             self._add_item_to_watchlist(data)
-        elif method == 'VideoLibrary.OnUpdate':
+        elif method == 'Player.OnStop':
+            self.delay = datetime.now() + timedelta(seconds=2)
             self._check_item_against_watchlist(data)
+        elif method == 'VideoLibrary.OnUpdate':
+            if not self.delay:
+                self._check_item_against_watchlist(data)
+            else:
+                self.delay = False
 
     def _add_item_to_watchlist(self, data):
         if data['item']['type'] == 'episode':
@@ -41,6 +48,8 @@ class KodiMonitor(xbmc.Monitor):
         self.watchlist.append(new_item)
 
     def _check_item_against_watchlist(self, data):
+        while self.delay and datetime.now() < self.delay:
+            xbmc.sleep(100)
         matching = [item for item in self.watchlist if item['type'] == data['item']['type'] and item['id'] == data['item']['id']]
         if matching:
             matching = matching[0]
@@ -53,6 +62,7 @@ class KodiMonitor(xbmc.Monitor):
                 json_result = quickjson.get_movie_details(data['item']['id'])
                 if _should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
+        self.delay = False
 
 def _should_revert_lastplayed(start_time, lastplayed_string):
     lastplayed_time = datetime.strptime(lastplayed_string, '%Y-%m-%d %H:%M:%S')
