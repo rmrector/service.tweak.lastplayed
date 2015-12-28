@@ -1,0 +1,11 @@
+# Kodi Media Center language file
+# Addon Name: Tweak Last played rules
+# Addon id: service.tweak.lastplayed
+msgid ""
+msgstr ""
+
+# Settings
+
+msgctxt "#32900"
+msgid "Update last played time after xx minutes"
+msgstr ""

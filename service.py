@@ -8,10 +8,11 @@ resourcelibs = xbmc.translatePath(addon.getAddonInfo('path')).decode('utf-8')
 resourcelibs = os.path.join(resourcelibs, u'resources', u'lib')
 sys.path.append(resourcelibs)
 
-seconds_to_ignore = 120
 import quickjson
 import pykodi
 from pykodi import log
+
+SETTING_UPDATE_AFTER = 'update_after'
 
 class KodiMonitor(xbmc.Monitor):
     watchlist = []
@@ -54,8 +55,12 @@ class KodiMonitor(xbmc.Monitor):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
 
 def _should_revert_lastplayed(start_time, lastplayed_string):
-    lastplayed_time = datetime.strptime(lastplayed_string)
-    return lastplayed_time < start_time + timedelta(seconds=seconds_to_ignore)
+    lastplayed_time = datetime.strptime(lastplayed_string, '%Y-%m-%d %H:%M:%S')
+    try:
+        update_after = float(addon.getSetting(SETTING_UPDATE_AFTER)) * 60
+    except ValueError:
+        update_after = 120
+    return lastplayed_time < start_time + timedelta(seconds=update_after)
 
 if __name__ == '__main__':
     if pykodi.first_datetime():

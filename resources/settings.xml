@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<settings>
+	<category label="128">
+		<setting id="update_after" label="32900" type="slider" option="float" default="2" range="0.5,0.5,10" />
+	</category>
+</settings>
