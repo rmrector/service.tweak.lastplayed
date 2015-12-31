@@ -74,18 +74,18 @@ class TweakLastPlayedService(xbmc.Monitor):
                 pass # The video was played through to the end, no need to revert lastplayed
             elif matching['type'] == 'episode':
                 json_result = quickjson.get_episode_details(data['item']['id'])
-                if self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']) and json_result['lastplayed'] != matching['DB last played']:
+                if json_result['lastplayed'] != matching['DB last played'] and self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_episode_details(matching['id'], lastplayed=matching['DB last played'])
                     log("Reverted episode '%s' last played timestamp." % json_result['title'])
             elif matching['type'] == 'movie':
                 json_result = quickjson.get_movie_details(data['item']['id'])
-                if self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']) and json_result['lastplayed'] != matching['DB last played']:
+                if json_result['lastplayed'] != matching['DB last played'] and self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
                     log("Reverted movie '%s' last played timestamp." % json_result['title'])
         self.delay = False
 
-    def should_revert_lastplayed(self, start_time, lastplayed_string):
-        lastplayed_time = datetime.strptime(lastplayed_string, '%Y-%m-%d %H:%M:%S')
+    def should_revert_lastplayed(self, start_time, newlastplayed_string):
+        lastplayed_time = datetime.strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
         try:
             update_after = float(addon.getSetting(SETTING_UPDATE_AFTER)) * 60
         except ValueError:
