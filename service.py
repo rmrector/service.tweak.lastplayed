@@ -18,7 +18,7 @@ class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):
         super(TweakLastPlayedService, self).__init__()
         self.watchlist = []
-        self.delay = False
+        self.delay = 0
         self.paused = False
         self.pausedtime = 0
 
@@ -46,13 +46,15 @@ class TweakLastPlayedService(xbmc.Monitor):
             self.paused = True
         elif method == 'Player.OnStop':
             self.paused = False
-            self.delay = datetime.now() + timedelta(seconds=2)
+            # OnStop is fired before the library is updated, so delay check
+            # OnUpdate is probably going to show up very soon, then the check can proceed
+            self.delay = 2000
             self._check_item_against_watchlist(data)
         elif method == 'VideoLibrary.OnUpdate':
             if not self.delay:
                 self._check_item_against_watchlist(data)
             else:
-                self.delay = False
+                self.delay = 0
 
     def _add_item_to_watchlist(self, data):
         if data['item']['type'] == 'episode':
@@ -63,9 +65,11 @@ class TweakLastPlayedService(xbmc.Monitor):
         new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': datetime.now(), 'DB last played': json_result['lastplayed']}
         self.watchlist.append(new_item)
 
+    checktick = 100
     def _check_item_against_watchlist(self, data):
-        while self.delay and datetime.now() < self.delay:
-            xbmc.sleep(100)
+        while self.delay > 0:
+            xbmc.sleep(self.checktick)
+            self.delay -= self.checktick
         matching = [item for item in self.watchlist if matches(item, data['item'])]
         if matching:
             matching = matching[0]
