@@ -57,7 +57,7 @@ def first_datetime():
 def _json_to_str(jsoninput):
     """Converts values in a data object from JSON to utf-8."""
     if isinstance(jsoninput, dict):
-        return {_json_to_str(key): _json_to_str(value) for key, value in jsoninput.iteritems()}
+        return {key: _json_to_str(value) for key, value in jsoninput.iteritems()}
     elif isinstance(jsoninput, list):
         return [_json_to_str(item) for item in jsoninput]
     elif isinstance(jsoninput, unicode):
@@ -67,8 +67,6 @@ def _json_to_str(jsoninput):
 
 class LogJSONEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, (dict, list, basestring)):
-            return obj
         if isinstance(obj, collections.Mapping):
             return dict((key, obj[key]) for key in obj.keys())
         if isinstance(obj, collections.Iterable):
