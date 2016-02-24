@@ -1,13 +1,12 @@
 import pykodi
 from pykodi import log
 
-movie_properties = ['file', 'title', 'genre', 'year', 'rating', 'playcount', 'runtime', 'lastplayed', 'plot', 'art', 'resume', 'dateadded', 'mpaa', 'imdbnumber', 'plotoutline', 'tagline']
-episode_properties = ['file', 'title', 'firstaired', 'lastplayed', 'episode', 'season', 'plot', 'art', 'resume', 'playcount', 'dateadded', 'runtime', 'tvshowid']
+default_properties = ['title', 'lastplayed']
 
 def get_movie_details(movie_id, properties=None):
     json_request = get_base_json_request('VideoLibrary.GetMovieDetails')
     json_request['params']['movieid'] = movie_id
-    json_request['params']['properties'] = properties if properties else movie_properties
+    json_request['params']['properties'] = properties if properties else default_properties
 
     json_result = pykodi.execute_jsonrpc(json_request)
 
@@ -17,7 +16,7 @@ def get_movie_details(movie_id, properties=None):
 def get_episode_details(episode_id, properties=None):
     json_request = get_base_json_request('VideoLibrary.GetEpisodeDetails')
     json_request['params']['episodeid'] = episode_id
-    json_request['params']['properties'] = properties if properties else episode_properties
+    json_request['params']['properties'] = properties if properties else default_properties
 
     json_result = pykodi.execute_jsonrpc(json_request)
 
