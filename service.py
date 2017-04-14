@@ -18,7 +18,7 @@ class TweakLastPlayedService(xbmc.Monitor):
 
     def run(self):
         log('Service started')
-        waittime = 10
+        waittime = 5
         while not self.waitForAbort(waittime):
             if self.paused:
                 self.pausedtime += waittime
@@ -28,20 +28,29 @@ class TweakLastPlayedService(xbmc.Monitor):
         if method not in ('Player.OnPlay', 'Player.OnStop', 'Player.OnPause', 'VideoLibrary.OnUpdate'):
             return
         data = json.loads(data)
-        if 'item' not in data or 'id' not in data['item'] or data['item']['type'] not in ('movie', 'episode'):
-            return # Keep it simple by tracking only library videos that are likely to be longer than a few minutes anyway
+
+        if is_data_onplay_bugged(data, method):
+            data['item']['id'], data['item']['type'] = hack_onplay_databits()
+
+        if 'item' not in data or 'id' not in data['item'] or data.get('transaction') or \
+                data['item']['type'] not in ('movie', 'episode') or data['item']['id'] == -1:
+            log("Not watching this item")
+            return
+        else:
+            data_id = data['item']['id']
+            data_type = data['item']['type']
 
         if method == 'Player.OnPlay':
             if not self.paused:
-                self._add_item_to_watchlist(data)
+                self._add_item_to_watchlist(data_type, data_id)
                 self.pausedtime = 0
             self.paused = False
         elif method == 'Player.OnPause':
             self.paused = True
         elif method == 'Player.OnStop':
             self.paused = False
-            # OnStop is fired before the library is updated, so delay check
-            # OnUpdate is probably going to show up very soon, then the check can proceed
+            # sometimes OnUpdate isn't received or is incorrect, so gotta check after OnStop
+            # OnStop can fire before the library is updated, so delay check
             self.delay = 2000
             self._check_item_against_watchlist(data)
         elif method == 'VideoLibrary.OnUpdate':
@@ -50,13 +59,15 @@ class TweakLastPlayedService(xbmc.Monitor):
             else:
                 self.delay = 0
 
-    def _add_item_to_watchlist(self, data):
-        if data['item']['type'] == 'episode':
-            json_result = quickjson.get_episode_details(data['item']['id'])
-        elif data['item']['type'] == 'movie':
-            json_result = quickjson.get_movie_details(data['item']['id'])
+    def _add_item_to_watchlist(self, data_type, data_id):
+        if data_type == 'episode':
+            json_result = quickjson.get_episode_details(data_id)
+        elif data_type == 'movie':
+            json_result = quickjson.get_movie_details(data_id)
 
-        new_item = {'type': data['item']['type'], 'id': data['item']['id'], 'start time': datetime.now(), 'DB last played': json_result['lastplayed']}
+        new_item = {'type': data_type, 'id': data_id, 'start time': datetime_now(),
+            'DB last played': json_result['lastplayed']}
+        log(new_item)
         self.watchlist.append(new_item)
 
     checktick = 100
@@ -64,22 +75,32 @@ class TweakLastPlayedService(xbmc.Monitor):
         while self.delay > 0:
             xbmc.sleep(self.checktick)
             self.delay -= self.checktick
-        matching = [item for item in self.watchlist if matches(item, data['item'])]
+            if self.abortRequested():
+                return
+        matching = next((item for item in self.watchlist if matches(item, data['item'])), None)
         if matching:
-            matching = matching[0]
             self.watchlist = [item for item in self.watchlist if not matches(item, data['item'])]
-            if 'end' in data and data['end']:
-                pass # The video was played through to the end, no need to revert lastplayed
+            if data.get('end'):
+                # The video was played through to the end, no need to revert lastplayed
+                log("Video watched to end, not reverting")
             elif matching['type'] == 'episode':
                 json_result = quickjson.get_episode_details(data['item']['id'])
-                if json_result['lastplayed'] != matching['DB last played'] and self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
+                if json_result['lastplayed'] != matching['DB last played'] and \
+                        self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_episode_details(matching['id'], lastplayed=matching['DB last played'])
-                    log("Reverted episode '%s' last played timestamp." % json_result['title'])
+                    log("Reverted episode '{0}' last played timestamp".format(json_result['title']))
+                else:
+                    log("Not reverting episode '{0}' last played timestamp".format(json_result['title']))
             elif matching['type'] == 'movie':
                 json_result = quickjson.get_movie_details(data['item']['id'])
-                if json_result['lastplayed'] != matching['DB last played'] and self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
+                if json_result['lastplayed'] != matching['DB last played'] and \
+                        self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
                     quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
-                    log("Reverted movie '%s' last played timestamp." % json_result['title'])
+                    log("Reverted movie '{0}' last played timestamp.".format(json_result['title']))
+                else:
+                    log("Not reverting movie '{0}' last played timestamp".format(json_result['title']))
+        else:
+            log("Item not in watch list")
         self.delay = False
 
     def should_revert_lastplayed(self, start_time, newlastplayed_string):
@@ -94,6 +115,26 @@ class TweakLastPlayedService(xbmc.Monitor):
 
 def matches(item, dataitem):
     return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
+
+def is_data_onplay_bugged(data, method):
+    # WARN: OnUpdate for playcount/lastplayed after playing is also bugged and spits out {"id":-1,"type":""}
+    return 'item' in data and 'id' not in data['item'] and data['item'].get('type') == 'movie' and \
+        data['item'].get('title') == '' and get_kodi_version() >= 17 and method == 'Player.OnPlay'
+
+def hack_onplay_databits():
+    # HACK: Workaround for Kodi 17 bug, not including the correct info in the notification when played
+    #  from home window or other non-media windows. http://trac.kodi.tv/ticket/17270
+
+    # VideoInfoTag can be incorrect immediately after the notification as well, keep trying
+    data_id = xbmc.Player().getVideoInfoTag().getDbId()
+    count = 0
+    while (not data_id or data_id == -1) and count < 4:
+        xbmc.sleep(500)
+        data_id = xbmc.Player().getVideoInfoTag().getDbId()
+        count += 1
+    if not data_id or data_id == -1:
+        return -1, ""
+    return data_id, xbmc.Player().getVideoInfoTag().getMediaType()
 
 if __name__ == '__main__':
     service = TweakLastPlayedService()
