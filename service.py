@@ -1,16 +1,10 @@
 import json
 import xbmc
-from datetime import datetime, timedelta
+import xbmcaddon
+from datetime import timedelta
 
-import os, sys, xbmcaddon
-addon = xbmcaddon.Addon()
-resourcelibs = xbmc.translatePath(addon.getAddonInfo('path')).decode('utf-8')
-resourcelibs = os.path.join(resourcelibs, u'resources', u'lib')
-sys.path.append(resourcelibs)
-
-import quickjson
-import pykodi
-from pykodi import log
+from lib import quickjson
+from lib.pykodi import log, datetime_now, datetime_strptime, get_kodi_version
 
 SETTING_UPDATE_AFTER = 'update_after'
 
@@ -89,9 +83,9 @@ class TweakLastPlayedService(xbmc.Monitor):
         self.delay = False
 
     def should_revert_lastplayed(self, start_time, newlastplayed_string):
-        lastplayed_time = datetime.strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
+        lastplayed_time = datetime_strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
         try:
-            update_after = float(addon.getSetting(SETTING_UPDATE_AFTER)) * 60
+            update_after = float(xbmcaddon.Addon().getSetting(SETTING_UPDATE_AFTER)) * 60
         except ValueError:
             update_after = 120
 
@@ -102,9 +96,8 @@ def matches(item, dataitem):
     return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
 
 if __name__ == '__main__':
-    if pykodi.first_datetime():
-        service = TweakLastPlayedService()
-        try:
-            service.run()
-        finally:
-            del service
+    service = TweakLastPlayedService()
+    try:
+        service.run()
+    finally:
+        del service
