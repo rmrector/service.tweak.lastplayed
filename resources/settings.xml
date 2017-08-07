@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
 	<category label="128">
-		<setting id="update_after" label="32900" type="slider" option="float" default="2" range="0.5,0.5,10" />
+		<setting label="32412" type="action" action="Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)"
+			visible="!Skin.HasSetting(disablecontext:service.tweak.lastplayed)" />
+		<setting label="32413" type="action" action="Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)"
+			visible="Skin.HasSetting(disablecontext:service.tweak.lastplayed)" />
+		<setting id="update_after" label="32900" type="slider" option="float" default="2" range="0,0.5,10" />
 	</category>
 </settings>

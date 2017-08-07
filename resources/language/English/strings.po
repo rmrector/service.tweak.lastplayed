@@ -6,6 +6,14 @@ msgstr ""
 
 # Settings
 
+msgctxt "#32412"
+msgid "Disable context items [I](per skin)[/I]"
+msgstr ""
+
+msgctxt "#32413"
+msgid "Enable context items [I](per skin)[/I]"
+msgstr ""
+
 msgctxt "#32900"
 msgid "Update last played time after xx minutes"
 msgstr ""

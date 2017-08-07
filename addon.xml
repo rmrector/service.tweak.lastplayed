@@ -5,10 +5,26 @@
 		<import addon="script.module.simplejson" version="3.3.0"/>
 	</requires>
 	<extension point="xbmc.service" start="login" library="service.py" />
+	<extension point="kodi.context.item">
+		<menu id="kodi.core.manage">
+			<item library="context.py">
+				<label>Mark as watched again</label>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 0)</visible>
+			</item>
+			<item library="context_remove.py">
+				<label>Remove one watch count</label>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 1)</visible>
+			</item>
+			<item library="context_clearresume.py">
+				<label>Clear resume status</label>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + ListItem.IsResumable</visible>
+			</item>
+		</menu>
+	</extension>
 	<extension point="xbmc.addon.metadata">
-		<summary lang="en">This service tweaks when the last played time for videos is updated to be more useful.</summary>
-		<description lang="en">This add-on changes the last played time for videos to update only if at least a small portion has actually been played, hopefully improving the usefulness of lists and add-ons using this timestamp.</description>
 		<news lang="en">v0.5.3 (2017-04-14)
+		<summary lang="en">Several tools to manage watched status and last played time.</summary>
+		<description lang="en">Includes context items "Mark as watched again", "Remove one watch count", and "Clear resume status", all under "Manage...", and a service that changes the last played time for videos to update only if at least a small portion has actually been played, hopefully improving the usefulness of lists and add-ons using this timestamp.</description>
 - Work around Kodi bug introduced in Krypton when playing movie from Home window</news>
 		<platform>all</platform>
 		<source>https://github.com/rmrector/service.tweak.lastplayed</source>
