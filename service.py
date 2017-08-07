@@ -15,15 +15,15 @@ class TweakLastPlayedService(xbmc.Monitor):
         self.update_after = 0
 
     def run(self):
-        log('Service started')
         waittime = 5
         while not self.waitForAbort(waittime):
             if self.paused:
                 self.pausedtime += waittime
-        log('Service stopped')
 
     def onNotification(self, sender, method, data):
         if method not in ('Player.OnPlay', 'Player.OnStop', 'Player.OnPause', 'VideoLibrary.OnUpdate'):
+            return
+        if not self.update_after:
             return
         data = json.loads(data)
 
@@ -49,7 +49,7 @@ class TweakLastPlayedService(xbmc.Monitor):
             self.paused = False
             # sometimes OnUpdate isn't received or is incorrect, so gotta check after OnStop
             # OnStop can fire before the library is updated, so delay check
-            self.delay = 2000
+            self.delay = 1000
             self._check_item_against_watchlist(data)
         elif method == 'VideoLibrary.OnUpdate':
             if not self.delay:
@@ -62,7 +62,6 @@ class TweakLastPlayedService(xbmc.Monitor):
 
         new_item = {'type': data_type, 'id': data_id, 'start time': datetime_now(),
             'DB last played': json_result['lastplayed']}
-        log(new_item)
         self.watchlist.append(new_item)
 
     checktick = 100
@@ -107,28 +106,26 @@ def matches(item, dataitem):
     return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
 
 def is_data_onplay_bugged(data, method):
-    # WARN: OnUpdate for playcount/lastplayed after playing is also bugged and spits out {"id":-1,"type":""}
+    # WARN: OnUpdate for playcount/lastplayed after playing can also be bugged and spits out {"id":-1,"type":""}
     return 'item' in data and 'id' not in data['item'] and data['item'].get('type') == 'movie' and \
-        data['item'].get('title') == '' and get_kodi_version() >= 17 and method == 'Player.OnPlay'
+        data['item'].get('title') == '' and method == 'Player.OnPlay' and get_kodi_version() >= 17
 
 def hack_onplay_databits():
     # HACK: Workaround for Kodi 17 bug, not including the correct info in the notification when played
     #  from home window or other non-media windows. http://trac.kodi.tv/ticket/17270
 
     # VideoInfoTag can be incorrect immediately after the notification as well, keep trying
-    data_id = xbmc.Player().getVideoInfoTag().getDbId()
     count = 0
-    while (not data_id or data_id == -1) and count < 4:
-        xbmc.sleep(500)
-        data_id = xbmc.Player().getVideoInfoTag().getDbId()
+    mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
+    while not mediatype and count < 20:
+        xbmc.sleep(100)
+        mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
         count += 1
-    if not data_id or data_id == -1:
+    if not mediatype:
         return -1, ""
-    return data_id, xbmc.Player().getVideoInfoTag().getMediaType()
+    return xbmc.Player().getVideoInfoTag().getDbId(), mediatype
 
 if __name__ == '__main__':
-    service = TweakLastPlayedService()
-    try:
-        service.run()
-    finally:
-        del service
+    log('Service started', xbmc.LOGINFO)
+    TweakLastPlayedService().run()
+    log('Service stopped', xbmc.LOGINFO)
