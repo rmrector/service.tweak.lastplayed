@@ -13,6 +13,7 @@ and changes the last played time to a time between the current last played and d
 
 These context items require Kodi 16 Jarvis and above.
 
+## Tweak last played time
 
 This feature changes the last played time for movies and episodes in the library to
 update only if at least a small portion has actually been played, preventing updates to
