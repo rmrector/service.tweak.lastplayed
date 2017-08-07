@@ -1,10 +1,9 @@
-import json
 import xbmc
 import xbmcaddon
 from datetime import timedelta
 
-from lib import quickjson
-from lib.pykodi import log, datetime_now, datetime_strptime, get_kodi_version
+from lib.libs import quickjson
+from lib.libs.pykodi import log, datetime_now, datetime_strptime, get_kodi_version, json
 
 SETTING_UPDATE_AFTER = 'update_after'
 
@@ -60,10 +59,7 @@ class TweakLastPlayedService(xbmc.Monitor):
                 self.delay = 0
 
     def _add_item_to_watchlist(self, data_type, data_id):
-        if data_type == 'episode':
-            json_result = quickjson.get_episode_details(data_id)
-        elif data_type == 'movie':
-            json_result = quickjson.get_movie_details(data_id)
+        json_result = quickjson.get_details(data_id, data_type)
 
         new_item = {'type': data_type, 'id': data_id, 'start time': datetime_now(),
             'DB last played': json_result['lastplayed']}
@@ -77,33 +73,26 @@ class TweakLastPlayedService(xbmc.Monitor):
             self.delay -= self.checktick
             if self.abortRequested():
                 return
-        matching = next((item for item in self.watchlist if matches(item, data['item'])), None)
-        if matching:
-            self.watchlist = [item for item in self.watchlist if not matches(item, data['item'])]
-            if data.get('end'):
-                # The video was played through to the end, no need to revert lastplayed
-                log("Video watched to end, not reverting")
-            elif matching['type'] == 'episode':
-                json_result = quickjson.get_episode_details(data['item']['id'])
-                if json_result['lastplayed'] != matching['DB last played'] and \
-                        self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
-                    quickjson.set_episode_details(matching['id'], lastplayed=matching['DB last played'])
-                    log("Reverted episode '{0}' last played timestamp".format(json_result['title']))
-                else:
-                    log("Not reverting episode '{0}' last played timestamp".format(json_result['title']))
-            elif matching['type'] == 'movie':
-                json_result = quickjson.get_movie_details(data['item']['id'])
-                if json_result['lastplayed'] != matching['DB last played'] and \
-                        self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
-                    quickjson.set_movie_details(matching['id'], lastplayed=matching['DB last played'])
-                    log("Reverted movie '{0}' last played timestamp.".format(json_result['title']))
-                else:
-                    log("Not reverting movie '{0}' last played timestamp".format(json_result['title']))
-        else:
-            log("Item not in watch list")
         self.delay = False
+        matching = next((item for item in self.watchlist if matches(item, data['item'])), None)
+        if not matching:
+            log("Item not in watch list")
+            return
+        self.watchlist = [item for item in self.watchlist if not matches(item, data['item'])]
+        if data.get('end'):
+            log("Video watched to end, not reverting")
+            return
+        json_result = quickjson.get_details(data['item']['id'], matching['type'])
+        if not self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
+            log("Not reverting  {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
+            return
+
+        quickjson.set_details(matching['id'], matching['type'], lastplayed=matching['DB last played'])
+        log("Reverted {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
 
     def should_revert_lastplayed(self, start_time, newlastplayed_string):
+        if start_time == newlastplayed_string:
+            return False
         lastplayed_time = datetime_strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
         try:
             update_after = float(xbmcaddon.Addon().getSetting(SETTING_UPDATE_AFTER)) * 60
