@@ -5,8 +5,6 @@ from datetime import timedelta
 from lib.libs import quickjson
 from lib.libs.pykodi import log, datetime_now, datetime_strptime, get_kodi_version, json
 
-SETTING_UPDATE_AFTER = 'update_after'
-
 class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):
         super(TweakLastPlayedService, self).__init__()
@@ -14,6 +12,7 @@ class TweakLastPlayedService(xbmc.Monitor):
         self.delay = 0
         self.paused = False
         self.pausedtime = 0
+        self.update_after = 0
 
     def run(self):
         log('Service started')
@@ -94,13 +93,15 @@ class TweakLastPlayedService(xbmc.Monitor):
         if start_time == newlastplayed_string:
             return False
         lastplayed_time = datetime_strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
-        try:
-            update_after = float(xbmcaddon.Addon().getSetting(SETTING_UPDATE_AFTER)) * 60
-        except ValueError:
-            update_after = 120
-
-        compareseconds = update_after + self.pausedtime
+        compareseconds = self.update_after + self.pausedtime
         return lastplayed_time < start_time + timedelta(seconds=compareseconds)
+
+    def onSettingsChanged(self):
+        try:
+            self.update_after = float(xbmcaddon.Addon().getSetting('update_after')) * 60
+        except ValueError:
+            xbmcaddon.Addon().setSetting('update_after', "2")
+            self.update_after = 120
 
 def matches(item, dataitem):
     return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
