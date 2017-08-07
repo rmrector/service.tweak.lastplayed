@@ -1,5 +1,5 @@
 # Kodi Media Center language file
-# Addon Name: Tweak Last played rules
+# Addon Name: Watched status toolbox
 # Addon id: service.tweak.lastplayed
 msgid ""
 msgstr ""
