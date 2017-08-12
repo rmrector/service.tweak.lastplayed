@@ -49,7 +49,7 @@ class TweakLastPlayedService(xbmc.Monitor):
             self.paused = False
             # sometimes OnUpdate isn't received or is incorrect, so gotta check after OnStop
             # OnStop can fire before the library is updated, so delay check
-            self.delay = 1000
+            self.delay = 2000 # 1000 was too short, but this needs rebuilt like the Beef's notification handling
             self._check_item_against_watchlist(data)
         elif method == 'VideoLibrary.OnUpdate':
             if not self.delay:
