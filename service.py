@@ -13,6 +13,7 @@ class TweakLastPlayedService(xbmc.Monitor):
         self.paused = False
         self.pausedtime = 0
         self.update_after = 0
+        self.load_settings()
 
     def run(self):
         waittime = 5
@@ -96,6 +97,9 @@ class TweakLastPlayedService(xbmc.Monitor):
         return lastplayed_time < start_time + timedelta(seconds=compareseconds)
 
     def onSettingsChanged(self):
+        self.load_settings()
+
+    def load_settings(self):
         try:
             self.update_after = float(xbmcaddon.Addon().getSetting('update_after')) * 60
         except ValueError:
