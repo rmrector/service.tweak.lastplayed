@@ -62,7 +62,7 @@ class TweakLastPlayedService(xbmc.Monitor):
         json_result = quickjson.get_details(data_id, data_type)
 
         new_item = {'type': data_type, 'id': data_id, 'start time': datetime_now(),
-            'DB last played': json_result['lastplayed']}
+            'DB last played': json_result['lastplayed'], 'DB resume': json_result['resume']}
         self.watchlist.append(new_item)
 
     checktick = 100
@@ -86,7 +86,8 @@ class TweakLastPlayedService(xbmc.Monitor):
             log("Not reverting  {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
             return
 
-        quickjson.set_details(matching['id'], matching['type'], lastplayed=matching['DB last played'])
+        quickjson.set_details(matching['id'], matching['type'], lastplayed=matching['DB last played'],
+            resume=matching['DB resume'])
         log("Reverted {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
 
     def should_revert_lastplayed(self, start_time, newlastplayed_string):
