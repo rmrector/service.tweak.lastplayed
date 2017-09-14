@@ -121,9 +121,13 @@ def hack_onplay_databits():
 
     # VideoInfoTag can be incorrect immediately after the notification as well, keep trying
     count = 0
+    if not xbmc.Player().isPlayingVideo():
+        return -1, ""
     mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
-    while not mediatype and count < 20:
-        xbmc.sleep(100)
+    while not mediatype and count < 10:
+        xbmc.sleep(200)
+        if not xbmc.Player().isPlayingVideo():
+            return -1, ""
         mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
         count += 1
     if not mediatype:
