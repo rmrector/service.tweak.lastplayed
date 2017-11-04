@@ -1,0 +1,30 @@
+# Kodi Media Center language file
+# Addon Name: Watched status toolbox
+# Addon id: service.tweak.lastplayed
+msgid ""
+msgstr ""
+"Project-Id-Version: service.tweak.lastplayed\n"
+"Report-Msgid-Bugs-To: http://trac.kodi.tv/\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2017-10-16 11:16+0300\n"
+"Last-Translator: A. Dambledore\n"
+"Language-Team: Eng2Heb\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: he_IL\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+# Settings
+msgctxt "#32412"
+msgid "Disable context items [I](per skin)[/I]"
+msgstr "השבת פרטי תפריט הקישור [I](לכל מעטפת)[/I]"
+
+msgctxt "#32413"
+msgid "Enable context items [I](per skin)[/I]"
+msgstr "אפשר פרטי תפריט הקישור [I](לכל מעטפת)[/I]"
+
+msgctxt "#32900"
+msgid "Update last played time after xx minutes"
+msgstr "עדכן מתי נוגן בפעם האחרונה לאחר xx דקות"
