@@ -63,13 +63,6 @@ def datetime_now():
         xbmc.sleep(50)
         return datetime_now()
 
-def datetime_now():
-    try:
-        return datetime.now()
-    except ImportError:
-        xbmc.sleep(50)
-        return datetime_now()
-
 def datetime_strptime(date_string, format_string):
     try:
         return datetime.strptime(date_string, format_string)
