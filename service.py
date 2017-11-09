@@ -86,7 +86,7 @@ class TweakLastPlayedService(xbmc.Monitor):
             log("Not reverting  {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
             return
 
-        quickjson.set_details(matching['id'], matching['type'], lastplayed=matching['DB last played'],
+        quickjson.set_item_details(matching['id'], matching['type'], lastplayed=matching['DB last played'],
             resume=matching['DB resume'])
         log("Reverted {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
 

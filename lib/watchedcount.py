@@ -7,7 +7,7 @@ def add_one(dbid, mediatype):
     mediaitem = quickjson.get_details(dbid, mediatype)
     playcount = mediaitem['playcount'] + 1
     lastplayed = datetime_now()
-    quickjson.set_details(dbid, mediatype, playcount=playcount, lastplayed=str(lastplayed).split('.')[0])
+    quickjson.set_item_details(dbid, mediatype, playcount=playcount, lastplayed=str(lastplayed).split('.')[0])
     xbmc.executebuiltin('Container.Refresh')
 
 def remove_one(dbid, mediatype):
@@ -17,9 +17,9 @@ def remove_one(dbid, mediatype):
 
     newplaycount = mediaitem['playcount'] - 1
     newlastplayed = lastplayed - (lastplayed - dateadded) / newplaycount
-    quickjson.set_details(dbid, mediatype, playcount=newplaycount, lastplayed=str(newlastplayed).split('.')[0])
+    quickjson.set_item_details(dbid, mediatype, playcount=newplaycount, lastplayed=str(newlastplayed).split('.')[0])
     xbmc.executebuiltin('Container.Refresh')
 
 def clear_resume(dbid, mediatype):
-    quickjson.set_details(dbid, mediatype, resume={'position': 0, 'total': 0})
+    quickjson.set_item_details(dbid, mediatype, resume={'position': 0, 'total': 0})
     xbmc.executebuiltin('Container.Refresh')

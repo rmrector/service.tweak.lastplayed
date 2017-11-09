@@ -19,7 +19,7 @@ def get_details(dbid, mediatype):
     if check_json_result(json_result, result_key, json_request):
         return json_result['result'][result_key]
 
-def set_details(dbid, mediatype, **details):
+def set_item_details(dbid, mediatype, **details):
     assert mediatype in typemap
 
     json_request = get_base_json_request('VideoLibrary.Set{0}Details'.format(typemap[mediatype][0]))
