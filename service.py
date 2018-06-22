@@ -2,34 +2,42 @@ import xbmc
 import xbmcaddon
 from datetime import timedelta
 
-from lib.libs import quickjson
-from lib.libs.pykodi import log, datetime_now, datetime_strptime, get_kodi_version, json
+from lib.libs import pykodi, quickjson
+from lib.libs.pykodi import log, get_kodi_version
 
 class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):
         super(TweakLastPlayedService, self).__init__()
+        self.waittime = 2
+        self.signal = None
+
         self.watchlist = []
-        self.delay = 0
+        self.checklist = []
         self.paused = False
         self.pausedtime = 0
         self.update_after = 0
         self.load_settings()
 
     def run(self):
-        waittime = 5
-        while not self.waitForAbort(waittime):
+        while not self.waitForAbort(self.waittime):
             if self.paused:
-                self.pausedtime += waittime
+                self.pausedtime += self.waittime
+            elif self.signal:
+                if self.signal == 'check':
+                    self.signal = 'check_really'
+                elif self.signal == 'check_really':
+                    for dataitem in self.checklist:
+                        if 'end' in dataitem:
+                            self.check_data(dataitem)
+                    self.checklist = []
+                    self.signal = None
 
     def onNotification(self, sender, method, data):
         if method not in ('Player.OnPlay', 'Player.OnStop', 'Player.OnPause', 'VideoLibrary.OnUpdate'):
             return
         if not self.update_after:
             return
-        data = json.loads(data)
-
-        if is_data_onplay_bugged(data, method):
-            data['item']['id'], data['item']['type'] = hack_onplay_databits()
+        data = get_notificationdata(data, method)
 
         if 'item' not in data or 'id' not in data['item'] or data.get('transaction') or \
                 data['item']['type'] not in ('movie', 'episode') or data['item']['id'] == -1:
@@ -41,47 +49,48 @@ class TweakLastPlayedService(xbmc.Monitor):
 
         if method == 'Player.OnPlay':
             if not self.paused:
-                self._add_item_to_watchlist(data_type, data_id)
+                self.add_item_to_watchlist(data_type, data_id)
                 self.pausedtime = 0
             self.paused = False
         elif method == 'Player.OnPause':
             self.paused = True
         elif method == 'Player.OnStop':
             self.paused = False
-            # sometimes OnUpdate isn't received or is incorrect, so gotta check after OnStop
-            # OnStop can fire before the library is updated, so delay check
-            self.delay = 2000 # 1000 was too short, but this needs rebuilt like the Beef's notification handling
-            self._check_item_against_watchlist(data)
+            dataitem = data['item']
+            dataitem['end'] = data.get('end', False)
+            self.add_data_to_checklist(dataitem)
         elif method == 'VideoLibrary.OnUpdate':
-            if not self.delay:
-                self._check_item_against_watchlist(data)
-            else:
-                self.delay = 0
+            dataitem = data['item']
+            dataitem['updated'] = True
+            self.add_data_to_checklist(dataitem)
 
-    def _add_item_to_watchlist(self, data_type, data_id):
+    def add_item_to_watchlist(self, data_type, data_id):
         json_result = quickjson.get_details(data_id, data_type)
 
-        new_item = {'type': data_type, 'id': data_id, 'start time': datetime_now(),
+        new_item = {'type': data_type, 'id': data_id, 'start time': pykodi.datetime_now(),
             'DB last played': json_result['lastplayed'], 'DB resume': json_result['resume']}
         self.watchlist.append(new_item)
 
-    checktick = 100
-    def _check_item_against_watchlist(self, data):
-        while self.delay > 0:
-            xbmc.sleep(self.checktick)
-            self.delay -= self.checktick
-            if self.abortRequested():
-                return
-        self.delay = False
-        matching = next((item for item in self.watchlist if matches(item, data['item'])), None)
+    def add_data_to_checklist(self, dataitem):
+        prevdata = next(iter_matching(dataitem, self.checklist), None)
+        if prevdata:
+            for key in ('updated', 'end'):
+                if key in prevdata and key not in dataitem:
+                    dataitem[key] = prevdata[key]
+            self.checklist.remove(prevdata)
+        self.checklist.append(dataitem)
+        self.signal = 'check'
+
+    def check_data(self, dataitem):
+        matching = next(iter_matching(dataitem, self.watchlist), None)
         if not matching:
             log("Item not in watch list")
             return
-        self.watchlist = [item for item in self.watchlist if not matches(item, data['item'])]
-        if data.get('end'):
+        self.watchlist = list(iter_matching(dataitem, self.watchlist, True))
+        if dataitem['end']:
             log("Video watched to end, not reverting")
             return
-        json_result = quickjson.get_details(data['item']['id'], matching['type'])
+        json_result = quickjson.get_details(dataitem['id'], matching['type'])
         if not self.should_revert_lastplayed(matching['start time'], json_result['lastplayed']):
             log("Not reverting  {0} '{1}' last played timestamp".format(matching['type'], json_result['title']))
             return
@@ -93,7 +102,7 @@ class TweakLastPlayedService(xbmc.Monitor):
     def should_revert_lastplayed(self, start_time, newlastplayed_string):
         if start_time == newlastplayed_string:
             return False
-        lastplayed_time = datetime_strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
+        lastplayed_time = pykodi.datetime_strptime(newlastplayed_string, '%Y-%m-%d %H:%M:%S')
         compareseconds = self.update_after + self.pausedtime
         return lastplayed_time < start_time + timedelta(seconds=compareseconds)
 
@@ -107,13 +116,21 @@ class TweakLastPlayedService(xbmc.Monitor):
             xbmcaddon.Addon().setSetting('update_after', "2")
             self.update_after = 120
 
-def matches(item, dataitem):
-    return item['type'] == dataitem['type'] and item['id'] == dataitem['id']
+def iter_matching(dataitem, thelist, reversematch=False):
+    for item in thelist:
+        if (item['type'] == dataitem['type'] and item['id'] == dataitem['id']) ^ reversematch:
+            yield item
+
+def get_notificationdata(data, method):
+    data = pykodi.json_loads(data)
+    if is_data_onplay_bugged(data, method):
+        data['item']['id'], data['item']['type'] = hack_onplay_databits()
+    return data
 
 def is_data_onplay_bugged(data, method):
-    # WARN: OnUpdate for playcount/lastplayed after playing can also be bugged and spits out {"id":-1,"type":""}
     return 'item' in data and 'id' not in data['item'] and data['item'].get('type') == 'movie' and \
-        data['item'].get('title') == '' and method == 'Player.OnPlay' and get_kodi_version() >= 17
+        data['item'].get('title') == '' and method == 'Player.OnPlay' and get_kodi_version() in (17, 18)
+    # fixed between Kodi 18 alpha1 and alpha2
 
 def hack_onplay_databits():
     # HACK: Workaround for Kodi 17 bug, not including the correct info in the notification when played
