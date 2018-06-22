@@ -6,10 +6,12 @@ import xbmc
 import xbmcaddon
 from datetime import datetime
 
-if sys.version_info < (2, 7):
+oldpython = sys.version_info < (2, 7)
+if oldpython:
     import simplejson as json
 else:
     import json
+newpython = sys.version_info.major == 3
 
 try:
     datetime.strptime('2112-04-01', '%Y-%m-%d')
@@ -78,7 +80,17 @@ def execute_jsonrpc(jsonrpc_command):
         jsonrpc_command = json.dumps(jsonrpc_command)
 
     json_result = xbmc.executeJSONRPC(jsonrpc_command)
-    return json.loads(json_result, cls=UTF8JSONDecoder)
+    return json_loads(json_result)
+
+def json_loads(json_string):
+    args = {} if newpython else {'cls': UTF8JSONDecoder}
+    return json.loads(json_string, **args)
+
+def json_dumps(json_obj, pretty=False):
+    if not pretty:
+        return json.dumps(json_obj)
+    cls = PrettyJSONEncoder if newpython else UTF8PrettyJSONEncoder
+    return json.dumps(json_obj, cls=cls)
 
 def get_conditional(conditional):
     return xbmc.getCondVisibility(conditional)
@@ -96,7 +108,7 @@ def log(message, level=xbmc.LOGDEBUG, tag=None):
     elif isinstance(message, unicode):
         message = message.encode('utf-8')
     elif not isinstance(message, str):
-        message = json.dumps(message, cls=UTF8PrettyJSONEncoder)
+        message = json_dumps(message, True)
 
     addontag = ADDONID if not tag else ADDONID + ':' + tag
     file_message = '%s[%s] %s' % (level_tag, addontag, message)
@@ -132,22 +144,38 @@ class Addon(xbmcaddon.Addon):
             value = str(value)
         self.setSetting(settingid, value)
 
-class UTF8PrettyJSONEncoder(json.JSONEncoder):
+class ObjectJSONEncoder(json.JSONEncoder):
+    # Will still flop on circular objects
     def __init__(self, *args, **kwargs):
         kwargs['skipkeys'] = True
-        kwargs['ensure_ascii'] = False
-        kwargs['indent'] = 2
-        kwargs['separators'] = (',', ': ')
-        super(UTF8PrettyJSONEncoder, self).__init__(*args, **kwargs)
+        super(ObjectJSONEncoder, self).__init__(*args, **kwargs)
 
     def default(self, obj):
         # Called for objects that aren't directly JSON serializable
         if isinstance(obj, collections.Mapping):
             return dict((key, obj[key]) for key in obj.keys())
-        if isinstance(obj, collections.Iterable):
+        if isinstance(obj, collections.Sequence):
             return list(obj)
-        return str(obj)
+        if callable(obj):
+            return str(obj)
+        try:
+            result = dict(obj.__dict__)
+            result['* objecttype'] = str(type(obj))
+            return result
+        except AttributeError:
+            pass # obj has no __dict__ attribute
+        result = {'* repr': repr(obj)}
+        result['* objecttype'] = str(type(obj))
+        return result
 
+class PrettyJSONEncoder(ObjectJSONEncoder):
+    def __init__(self, *args, **kwargs):
+        kwargs['ensure_ascii'] = False
+        kwargs['indent'] = 2
+        kwargs['separators'] = (',', ': ')
+        super(PrettyJSONEncoder, self).__init__(*args, **kwargs)
+
+class UTF8PrettyJSONEncoder(PrettyJSONEncoder):
     def iterencode(self, obj, _one_shot=False):
         for result in super(UTF8PrettyJSONEncoder, self).iterencode(obj, _one_shot):
             if isinstance(result, unicode):
@@ -156,7 +184,8 @@ class UTF8PrettyJSONEncoder(json.JSONEncoder):
 
 class UTF8JSONDecoder(json.JSONDecoder):
     def raw_decode(self, s, idx=0):
-        result, end = super(UTF8JSONDecoder, self).raw_decode(s)
+        args = (s,) if oldpython else (s, idx)
+        result, end = super(UTF8JSONDecoder, self).raw_decode(*args)
         result = self._json_unicode_to_str(result)
         return result, end
 

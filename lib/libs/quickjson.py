@@ -1,5 +1,5 @@
 from lib.libs import pykodi
-from lib.libs.pykodi import log, json
+from lib.libs.pykodi import log
 
 # [0] method part
 typemap = {'movie': ('Movie',),
@@ -45,8 +45,8 @@ class JSONException(Exception):
         self.json_result = json_result
 
         message = "There was an error with a JSON-RPC request.\nRequest: "
-        message += json.dumps(json_request, cls=pykodi.UTF8PrettyJSONEncoder)
+        message += pykodi.json_dumps(json_request, True)
         message += "\nResult: "
-        message += json.dumps(json_result, cls=pykodi.UTF8PrettyJSONEncoder)
+        message += pykodi.json_dumps(json_result, True)
 
         super(JSONException, self).__init__(message)
