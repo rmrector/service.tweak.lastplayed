@@ -41,6 +41,9 @@ v0.6.0 (2017-08-06)
 		<source>https://github.com/rmrector/service.tweak.lastplayed</source>
 		<forum>https://forum.kodi.tv/showthread.php?tid=253816</forum>
 		<license>The MIT License</license>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
 		<disclaimer />
 		<website />
 		<language />
