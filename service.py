@@ -33,7 +33,9 @@ class TweakLastPlayedService(xbmc.Monitor):
                     self.signal = None
 
     def onNotification(self, sender, method, data):
-        if method not in ('Player.OnPlay', 'Player.OnStop', 'Player.OnPause', 'VideoLibrary.OnUpdate'):
+        # 'Player.OnResume' new in Leia, pre-Leia unpausing notifies 'OnPlay'
+        if method not in ('Player.OnPlay', 'Player.OnResume', 'Player.OnStop',
+                'Player.OnPause', 'VideoLibrary.OnUpdate'):
             return
         if not self.update_after:
             return
@@ -51,6 +53,8 @@ class TweakLastPlayedService(xbmc.Monitor):
             if not self.paused:
                 self.add_item_to_watchlist(data_type, data_id)
                 self.pausedtime = 0
+            self.paused = False
+        elif method == 'Player.OnResume':
             self.paused = False
         elif method == 'Player.OnPause':
             self.paused = True
