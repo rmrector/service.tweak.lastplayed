@@ -9,15 +9,15 @@
 		<menu id="kodi.core.manage">
 			<item library="context.py">
 				<label>Mark as watched again</label>
-				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 0)</visible>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 0)</visible>
 			</item>
 			<item library="context_remove.py">
 				<label>Remove one watch count</label>
-				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 1)</visible>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 1)</visible>
 			</item>
 			<item library="context_clearresume.py">
 				<label>Clear resume status</label>
-				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [StringCompare(ListItem.DBTYPE, movie) | StringCompare(ListItem.DBTYPE, episode) | StringCompare(ListItem.DBTYPE, musicvideo) | String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + ListItem.IsResumable</visible>
+				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + ListItem.IsResumable</visible>
 			</item>
 		</menu>
 	</extension>

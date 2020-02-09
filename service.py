@@ -3,7 +3,7 @@ import xbmcaddon
 from datetime import timedelta
 
 from lib.libs import pykodi, quickjson
-from lib.libs.pykodi import log, get_kodi_version
+from lib.libs.pykodi import log
 
 class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):
@@ -33,13 +33,12 @@ class TweakLastPlayedService(xbmc.Monitor):
                     self.signal = None
 
     def onNotification(self, sender, method, data):
-        # 'Player.OnResume' new in Leia, pre-Leia unpausing notifies 'OnPlay'
         if method not in ('Player.OnPlay', 'Player.OnResume', 'Player.OnStop',
                 'Player.OnPause', 'VideoLibrary.OnUpdate'):
             return
         if not self.update_after:
             return
-        data = get_notificationdata(data, method)
+        data = pykodi.json_loads(data)
 
         if 'item' not in data or 'id' not in data['item'] or data.get('transaction') or \
                 data['item']['type'] not in ('movie', 'episode') or data['item']['id'] == -1:
@@ -50,9 +49,8 @@ class TweakLastPlayedService(xbmc.Monitor):
             data_type = data['item']['type']
 
         if method == 'Player.OnPlay':
-            if not self.paused:
-                self.add_item_to_watchlist(data_type, data_id)
-                self.pausedtime = 0
+            self.add_item_to_watchlist(data_type, data_id)
+            self.pausedtime = 0
             self.paused = False
         elif method == 'Player.OnResume':
             self.paused = False
@@ -124,36 +122,6 @@ def iter_matching(dataitem, thelist, reversematch=False):
     for item in thelist:
         if (item['type'] == dataitem['type'] and item['id'] == dataitem['id']) ^ reversematch:
             yield item
-
-def get_notificationdata(data, method):
-    data = pykodi.json_loads(data)
-    if is_data_onplay_bugged(data, method):
-        data['item']['id'], data['item']['type'] = hack_onplay_databits()
-    return data
-
-def is_data_onplay_bugged(data, method):
-    return 'item' in data and 'id' not in data['item'] and data['item'].get('type') == 'movie' and \
-        data['item'].get('title') == '' and method == 'Player.OnPlay' and get_kodi_version() in (17, 18)
-    # fixed between Kodi 18 alpha1 and alpha2
-
-def hack_onplay_databits():
-    # HACK: Workaround for Kodi 17 bug, not including the correct info in the notification when played
-    #  from home window or other non-media windows. http://trac.kodi.tv/ticket/17270
-
-    # VideoInfoTag can be incorrect immediately after the notification as well, keep trying
-    count = 0
-    if not xbmc.Player().isPlayingVideo():
-        return -1, ""
-    mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
-    while not mediatype and count < 10:
-        xbmc.sleep(200)
-        if not xbmc.Player().isPlayingVideo():
-            return -1, ""
-        mediatype = xbmc.Player().getVideoInfoTag().getMediaType()
-        count += 1
-    if not mediatype:
-        return -1, ""
-    return xbmc.Player().getVideoInfoTag().getDbId(), mediatype
 
 if __name__ == '__main__':
     log('Service started', xbmc.LOGINFO)
