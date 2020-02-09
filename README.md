@@ -1,6 +1,6 @@
 # Watched status toolbox
 
-A few tools for managing watched status, play count, and resume points for videos in the
+A few tools for managing watched status and play count for videos in the
 library. There are add-on options to disable each section of the add-on.
 
 ## Context menu items
@@ -9,7 +9,6 @@ Context menu items added to the "Manage..." menu of media items: "Mark watched a
 adds 1 to the play count and updates the last played time, as if
 you had just watched it again. "Remove one watch count" removes one from the play count
 and changes the last played time to a time between the current last played and date added.
-"Clear resume status" removes the resume status of an item, leaving it simply watched or unwatched.
 
 These context items require Kodi 16 Jarvis and above.
 

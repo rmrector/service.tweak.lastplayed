@@ -19,7 +19,3 @@ def remove_one(dbid, mediatype):
     newlastplayed = lastplayed - (lastplayed - dateadded) / newplaycount
     quickjson.set_item_details(dbid, mediatype, playcount=newplaycount, lastplayed=str(newlastplayed).split('.')[0])
     xbmc.executebuiltin('Container.Refresh')
-
-def clear_resume(dbid, mediatype):
-    quickjson.set_item_details(dbid, mediatype, resume={'position': 0, 'total': 0})
-    xbmc.executebuiltin('Container.Refresh')

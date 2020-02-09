@@ -12,8 +12,6 @@ def main(mode):
         watchedcount.add_one(dbid, mediatype)
     elif mode == 'remove':
         watchedcount.remove_one(dbid, mediatype)
-    elif mode == 'clearresume':
-        watchedcount.clear_resume(dbid, mediatype)
 
 if __name__ == '__main__':
     main('add')
