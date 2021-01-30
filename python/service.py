@@ -2,8 +2,8 @@ import xbmc
 import xbmcaddon
 from datetime import timedelta
 
-from lib.libs import pykodi, quickjson
-from lib.libs.pykodi import log
+from libs import pykodi, quickjson
+from libs.pykodi import log
 
 class TweakLastPlayedService(xbmc.Monitor):
     def __init__(self):

@@ -1,5 +1,5 @@
-from lib.libs import pykodi
-from lib.libs.pykodi import log
+from libs import pykodi
+from libs.pykodi import log
 
 # [0] method part
 typemap = {'movie': ('Movie',),

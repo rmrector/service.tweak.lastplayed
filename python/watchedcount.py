@@ -1,7 +1,7 @@
 import xbmc
 
-from lib.libs.pykodi import datetime_now, datetime_strptime
-from lib.libs import quickjson
+from libs.pykodi import datetime_now, datetime_strptime
+from libs import quickjson
 
 def add_one(dbid, mediatype):
     mediaitem = quickjson.get_details(dbid, mediatype)

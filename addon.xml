@@ -3,14 +3,14 @@
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
-	<extension point="xbmc.service" start="login" library="service.py" />
+	<extension point="xbmc.service" start="login" library="python/service.py" />
 	<extension point="kodi.context.item">
 		<menu id="kodi.core.manage">
-			<item library="context.py">
+			<item library="python/context.py">
 				<label>Mark as watched again</label>
 				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 0)</visible>
 			</item>
-			<item library="context_remove.py">
+			<item library="python/context_remove.py">
 				<label>Remove one watch count</label>
 				<visible>!Skin.HasSetting(disablecontext:service.tweak.lastplayed) + [String.IsEqual(ListItem.DBTYPE, movie) | String.IsEqual(ListItem.DBTYPE, episode) | String.IsEqual(ListItem.DBTYPE, musicvideo)] + Integer.IsGreater(ListItem.PlayCount, 1)</visible>
 			</item>

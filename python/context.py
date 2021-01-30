@@ -1,6 +1,6 @@
 import sys
 
-from lib import watchedcount
+import watchedcount
 
 def main(mode):
     mediatype = sys.listitem.getVideoInfoTag().getMediaType()
