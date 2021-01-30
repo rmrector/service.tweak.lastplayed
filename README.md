@@ -10,8 +10,6 @@ adds 1 to the play count and updates the last played time, as if
 you had just watched it again. "Remove one watch count" removes one from the play count
 and changes the last played time to a time between the current last played and date added.
 
-These context items require Kodi 16 Jarvis and above.
-
 ## Tweak last played time
 
 This feature changes the last played time for movies and episodes in the library to
