@@ -1,10 +1,47 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<settings>
-	<category label="128">
-		<setting label="32412" type="action" action="Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)"
-			visible="!Skin.HasSetting(disablecontext:service.tweak.lastplayed)" />
-		<setting label="32413" type="action" action="Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)"
-			visible="Skin.HasSetting(disablecontext:service.tweak.lastplayed)" />
-		<setting id="update_after" label="32900" type="slider" option="float" default="2" range="0,0.5,10" />
-	</category>
+<?xml version="1.0" ?>
+<settings version="1">
+	<section id="service.tweak.lastplayed">
+		<category id="general" label="128" help="">
+			<group id="1">
+				<setting id="togglecontextoff" type="action" label="32412" help="">
+					<level>0</level>
+					<data>Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">!Skin.HasSetting(disablecontext:service.tweak.lastplayed)</condition>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action"/>
+				</setting>
+				<setting id="togglecontexton" type="action" label="32413" help="">
+					<level>0</level>
+					<data>Skin.ToggleSetting(disablecontext:service.tweak.lastplayed)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">Skin.HasSetting(disablecontext:service.tweak.lastplayed)</condition>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action"/>
+				</setting>
+				<setting id="update_after" type="number" label="32900" help="">
+					<level>0</level>
+					<default>2</default>
+					<constraints>
+						<minimum>0</minimum>
+						<step>0.5</step>
+						<maximum>10</maximum>
+					</constraints>
+					<control type="slider" format="number">
+						<popup>false</popup>
+					</control>
+				</setting>
+			</group>
+		</category>
+	</section>
 </settings>
